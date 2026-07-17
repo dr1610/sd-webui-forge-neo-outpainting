@@ -169,8 +169,11 @@ class Script(scripts.Script):
         else:
             mask_blur_y = 0
 
-        p.mask_blur_x = mask_blur_x*4
-        p.mask_blur_y = mask_blur_y*4
+        try:
+            p.mask_blur_x = mask_blur_x * 4
+            p.mask_blur_y = mask_blur_y * 4
+        except AttributeError:
+            p.mask_blur = max(mask_blur_x, mask_blur_y) * 4
 
         init_img = p.init_images[0]
         target_w = math.ceil((init_img.width + left + right) / 64) * 64
