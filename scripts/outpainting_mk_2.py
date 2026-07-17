@@ -78,12 +78,14 @@ def get_matched_noise(_np_src_image, np_mask_rgb, noise_q=1, color_variation=0.0
     ref_mask = np_mask_grey < 1e-3
 
     windowed_image = _np_src_image * (1. - _get_masked_window_rgb(np_mask_grey))
-    windowed_image /= np.max(windowed_image)
+    windowed_image_max = np.max(windowed_image)
+    if windowed_image_max > 0:
+        windowed_image /= windowed_image_max
     windowed_image += np.average(_np_src_image) * np_mask_rgb  # / (1.-np.average(np_mask_rgb))  # rather than leave the masked area black, we get better results from fft by filling the average unmasked color
 
     src_fft = _fft2(windowed_image)  # get feature statistics from masked src img
     src_dist = np.absolute(src_fft)
-    src_phase = src_fft / src_dist
+    src_phase = np.divide(src_fft, src_dist, out=np.zeros_like(src_fft), where=src_dist != 0)
 
     # create a generator with a static seed to make outpainting deterministic / only follow global seed
     rng = np.random.default_rng(0)
@@ -108,7 +110,9 @@ def get_matched_noise(_np_src_image, np_mask_rgb, noise_q=1, color_variation=0.0
     # scikit-image is used for histogram matching, very convenient!
     shaped_noise = np.real(_ifft2(shaped_noise_fft))
     shaped_noise -= np.min(shaped_noise)
-    shaped_noise /= np.max(shaped_noise)
+    shaped_noise_max = np.max(shaped_noise)
+    if shaped_noise_max > 0:
+        shaped_noise /= shaped_noise_max
     shaped_noise[img_mask, :] = skimage.exposure.match_histograms(shaped_noise[img_mask, :] ** 1., contrast_adjusted_np_src[ref_mask, :], channel_axis=1)
     shaped_noise = _np_src_image[:] * (1. - np_mask_rgb) + shaped_noise * np_mask_rgb
 
